@@ -16,5 +16,5 @@ Fight with a friend to achieve victory by earning more points in given time
 ------ 
 Project will use Python 3.x
 
-Krzysztof Zajączkowski
+Krzysztof Zajączkowski \
 Jakub Dębski
