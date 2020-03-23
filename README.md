@@ -13,4 +13,5 @@ Fight with a friend to achieve victory by earning more points in given time
     - 9 keybinds, 1 for each hole
     - action key for smacking with a hammer
     
+------ 
 Project will use Python 3.x
