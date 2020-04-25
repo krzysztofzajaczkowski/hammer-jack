@@ -11,5 +11,7 @@ while message != "q":
     s.send(message.encode())
     data = s.recv(1024)
     data = data.decode()
+    if data == "DISCONNECT":
+        break
     print(data)
 s.close()

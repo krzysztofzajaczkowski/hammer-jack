@@ -1,9 +1,7 @@
 import socket
 import threading
 import time
-import logging
 from collections import OrderedDict
-from functools import wraps
 
 
 class ClientThread(threading.Thread):
@@ -19,31 +17,37 @@ class ClientThread(threading.Thread):
 
     def run(self):
         self.first_data()
-        while True:
-            data = self.conn.recv(2048)
-            data = data.decode().split('♞')
-            print("Server received data:", data)
-            MESSAGE = "User " + data[0].strip() + " said " + data[1].strip()
-            if data[1].strip() == 'leave':
-                self.kill()
-                break
-            self.conn.send(MESSAGE.encode())  # echo
+        try:
+            while True:
+                self.conn.settimeout(10.0)
+                data = self.conn.recv(2048)
+                data = data.decode().split('♞')
+                print("Server received data:", data)
+                MESSAGE = "User " + data[0].strip() + " said " + data[1].strip()
+                if data[1].strip() == 'leave':
+                    self.kill()
+                    break
+                self.conn.send(MESSAGE.encode())  # echo
+        except socket.timeout as e:
+            self.kill()
 
     def first_data(self):
         data = self.conn.recv(2048)
         data = data.decode().split('♞')
         print("Server received data:", data)
         self.username = data[0].strip()
-        self.other_users[self.username] = "waiting"
+        self.other_users[self.username] = [self.ip, self.port, "waiting"]
         MESSAGE = "Hello! User " + data[0].strip() + " said " + data[1].strip()
         if MESSAGE == 'leave':
             return
         self.conn.send(MESSAGE.encode())  # echo
 
     def kill(self):
+        self.conn.send("DISCONNECT".encode())
         self.conn.shutdown(socket.SHUT_RDWR)
         self.conn.close()
         del self.other_users[self.username]
+        print("Successfuly deleted player ", self.username)
 
 
 class PlayersManager(threading.Thread):
@@ -64,16 +68,15 @@ class Server:
         self.players = OrderedDict()
         self.threads = []
         self.tcpServer = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.IP = addr
-        self.PORT = port
-        self.BUFFER_SIZE = 64
+        self.ip = addr
+        self.port = port
         self.create_tcp()
         self.queue = PlayersManager(self.players)
         self.queue.start()
 
     def create_tcp(self):
         self.tcpServer.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.tcpServer.bind((self.IP, self.PORT))
+        self.tcpServer.bind((self.ip, self.port))
 
     def listen(self):
         while True:
