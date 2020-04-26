@@ -16,6 +16,9 @@ class ClientThread(threading.Thread):
         self.other_users = other_users
         print("[+] New server socket thread started for " + ip + ":" + str(port))
 
+    def set_thread_info(self, thread):
+        self.thread_info = thread
+
     def run(self):
         self.first_data()
         try:
