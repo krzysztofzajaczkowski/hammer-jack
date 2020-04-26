@@ -1,4 +1,5 @@
 import socket
+import sys
 import threading
 import time
 from collections import OrderedDict
@@ -44,7 +45,7 @@ class ClientThread(threading.Thread):
         print("Server received data:", data)
         self.username = data[0].strip()
         self.other_users[self.username] = [self.ip, self.port, "waiting"]
-        MESSAGE = "Hello! User " + data[0].strip() + " said " + data[1].strip()
+        MESSAGE = "Hello! User " + data[0].strip() + " choosed " + data[1].strip()
         self.conn.send(MESSAGE.encode())  # echo
 
     def kill(self):
@@ -57,6 +58,7 @@ class ClientThread(threading.Thread):
         finally:
             del self.other_users[self.username]
             print("Successfuly deleted player", self.username)
+            sys.exit()
 
 
 class PlayersManager(threading.Thread):
@@ -66,7 +68,7 @@ class PlayersManager(threading.Thread):
 
     def run(self):
         while True:
-            print(len(self.other_players))
+            # print(len(self.other_players))
             if len(self.other_players) >= 2:
                 print(list(self.other_players)[:2])
             time.sleep(3)
@@ -94,7 +96,10 @@ class Server:
             (conn, (ip, port)) = self.tcpServer.accept()
             newthread = ClientThread(ip, port, conn, self.players)
             newthread.start()
-            self.threads.append(newthread)
+            if newthread.is_alive():
+                newthread.set_thread_info(newthread)
+            print(threading.enumerate())
+            print(threading.active_count())
 
 
 server = Server()
