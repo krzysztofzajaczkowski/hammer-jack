@@ -16,9 +16,6 @@ class ClientThread(threading.Thread):
         self.other_users = other_users
         print("[+] New server socket thread started for " + ip + ":" + str(port))
 
-    def set_thread_info(self, thread):
-        self.thread_info = thread
-
     def run(self):
         self.first_data()
         try:
@@ -27,7 +24,7 @@ class ClientThread(threading.Thread):
                 data = self.conn.recv(2048)
                 MESSAGE = str(self.respond(data.decode()))
                 self.conn.send(MESSAGE.encode())  # echo
-        except (socket.timeout, socket.error) as e:
+        except (socket.timeout, socket.error):
             self.kill()
 
     def respond(self, msg):
@@ -40,6 +37,7 @@ class ClientThread(threading.Thread):
         if len(list(self.other_users)) >= 3:
             pass
             # TODO REMOVE PLAYERS FROM QUEUE AND SEND THEM PORTS/IP
+        print(self.other_users)
         return list(self.other_users).index(self.username)
 
     def first_data(self):
@@ -99,11 +97,18 @@ class Server:
             (conn, (ip, port)) = self.tcpServer.accept()
             newthread = ClientThread(ip, port, conn, self.players)
             newthread.start()
-            if newthread.is_alive():
-                newthread.set_thread_info(newthread)
+            self.threads.append(newthread)
             print(threading.enumerate())
             print(threading.active_count())
 
+    def die(self):
+        for thread in self.threads:
+            thread.kill()
+        sys.exit()
+
 
 server = Server()
-server.listen()
+try:
+    server.listen()
+except KeyboardInterrupt:
+    server.die()
