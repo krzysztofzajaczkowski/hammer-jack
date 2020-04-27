@@ -1,5 +1,4 @@
 import socket
-import sys
 import threading
 import time
 from collections import OrderedDict
@@ -14,12 +13,13 @@ class ClientThread(threading.Thread):
         self.port = port
         self.username = ""
         self.other_users = other_users
+        self.dead = False
         print("[+] New server socket thread started for " + ip + ":" + str(port))
 
     def run(self):
         self.first_data()
         try:
-            while True:
+            while not self.dead:
                 self.conn.settimeout(10.0)
                 data = self.conn.recv(2048)
                 MESSAGE = str(self.respond(data.decode()))
@@ -60,16 +60,17 @@ class ClientThread(threading.Thread):
             if self.username in self.other_users.keys():
                 del self.other_users[self.username]
                 print("Successfuly deleted player", self.username)
-                sys.exit()
+                self.dead = True
 
 
 class PlayersManager(threading.Thread):
     def __init__(self, other_players):
         super().__init__()
         self.other_players = other_players
+        self.dead = False
 
     def run(self):
-        while True:
+        while not self.dead:
             # print(len(self.other_players))
             if len(self.other_players) >= 2:
                 print(list(self.other_players)[:2])
@@ -77,7 +78,7 @@ class PlayersManager(threading.Thread):
 
     def kill(self):
         print("Queue down")
-        sys.exit()
+        self.dead = True
 
 
 class Server:
@@ -91,22 +92,20 @@ class Server:
         self.queue = PlayersManager(self.players)
         self.queue.start()
         self.threads.append(self.queue)
+        self.dead = False
 
     def create_tcp(self):
         self.tcpServer.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.tcpServer.bind((self.ip, self.port))
 
     def listen(self):
-        while True:
+        while not self.dead:
             self.tcpServer.listen(4)
             print("Multithreaded Python server : Waiting for connections from TCP clients...")
             (conn, (ip, port)) = self.tcpServer.accept()
             newthread = ClientThread(ip, port, conn, self.players)
             newthread.start()
             self.threads.append(newthread)
-            # print(self.threads)
-            # print(threading.enumerate())
-            # print(threading.active_count())
 
     def die(self):
         for thread in threading.enumerate():
@@ -116,7 +115,7 @@ class Server:
                 except SystemExit:
                     pass
         try:
-            sys.exit()
+            self.dead = True
         except SystemExit:
             print("Main thread down")
             return
@@ -129,12 +128,12 @@ def main():
     except KeyboardInterrupt:
         server.die()
     finally:
-        print(threading.active_count())
-        quit()
+        for i in threading.enumerate():
+            try:
+                i.join()
+            except RuntimeError:
+                pass
 
 
 if __name__ == '__main__':
-    try:
-        main()
-    except:
-        pass
+    main()
