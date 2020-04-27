@@ -57,9 +57,10 @@ class ClientThread(threading.Thread):
         except OSError:
             pass
         finally:
-            del self.other_users[self.username]
-            print("Successfuly deleted player", self.username)
-            sys.exit()
+            if self.username in self.other_users.keys():
+                del self.other_users[self.username]
+                print("Successfuly deleted player", self.username)
+                sys.exit()
 
 
 class PlayersManager(threading.Thread):
@@ -74,17 +75,22 @@ class PlayersManager(threading.Thread):
                 print(list(self.other_players)[:2])
             time.sleep(3)
 
+    def kill(self):
+        print("Queue down")
+        sys.exit()
+
 
 class Server:
     def __init__(self, port=63300, addr='localhost'):
         self.players = OrderedDict()
-        self.threads = []
         self.tcpServer = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.threads = []
         self.ip = addr
         self.port = port
         self.create_tcp()
         self.queue = PlayersManager(self.players)
         self.queue.start()
+        self.threads.append(self.queue)
 
     def create_tcp(self):
         self.tcpServer.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -98,17 +104,37 @@ class Server:
             newthread = ClientThread(ip, port, conn, self.players)
             newthread.start()
             self.threads.append(newthread)
-            print(threading.enumerate())
-            print(threading.active_count())
+            # print(self.threads)
+            # print(threading.enumerate())
+            # print(threading.active_count())
 
     def die(self):
-        for thread in self.threads:
-            thread.kill()
-        sys.exit()
+        for thread in threading.enumerate():
+            if thread.getName() != "MainThread":
+                try:
+                    thread.kill()
+                except SystemExit:
+                    pass
+        try:
+            sys.exit()
+        except SystemExit:
+            print("Main thread down")
+            return
 
 
-server = Server()
-try:
-    server.listen()
-except KeyboardInterrupt:
-    server.die()
+def main():
+    server = Server()
+    try:
+        server.listen()
+    except KeyboardInterrupt:
+        server.die()
+    finally:
+        print(threading.active_count())
+        quit()
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except:
+        pass

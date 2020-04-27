@@ -15,6 +15,10 @@ while True:
     print(data)
     if data == "DISCONNECT":
         break
-    s.send("GAME_STATE".encode())
-    time.sleep(3.0)
+    try:
+        s.send("GAME_STATE".encode())
+    except BrokenPipeError:
+        s.close()
+        break
+    time.sleep(4.5)
 s.close()
