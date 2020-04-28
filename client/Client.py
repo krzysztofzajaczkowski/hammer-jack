@@ -18,6 +18,7 @@ class Client(object):
             return 0
         except socket.error as msg:
             print(f"Couldn't connect: {msg}")
+            self.socket.close()
             return -1
 
     def join_queue(self):
@@ -31,9 +32,10 @@ class Client(object):
             print("Press CTRL + C to leave")
             self.wait_in_queue()
         if data == f"{self.username}♞REJECTED_QUEUE":
-            print("Couldn't join queue...")
-            pass  # REJECTED_QUEUE -> Server cannot establish user(sth like keyError if user
+            print("Couldn't join queue...") # REJECTED_QUEUE -> Server cannot establish user(sth like keyError if user
             # with the same username already exists)
+            self.socket.shutdown(socket.SHUT_RDWR)
+            self.socket.close()
 
     def wait_in_queue(self):
         try:
@@ -42,9 +44,13 @@ class Client(object):
                 data = data.decode()
                 if data == "DISCONNECT":
                     print("Server closed connection")
+                    self.socket.shutdown(socket.SHUT_RDWR)
+                    self.socket.close()
                     break
                 print(f"Response from server: {data}")
         except KeyboardInterrupt:
             print("\nLeaving queue")
             message = f"{self.username}♞LEAVE_QUEUE"
             self.socket.send(message.encode())
+            self.socket.shutdown(socket.SHUT_RDWR)
+            self.socket.close()
