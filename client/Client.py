@@ -9,7 +9,12 @@ class Client(object):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def connect(self):
-        self.socket.connect((self.server_address, self.server_port))
+        try:
+            self.socket.connect((self.server_address, self.server_port))
+            return 0
+        except socket.error as msg:
+            print(f"Couldn't connect: {msg}")
+            return -1
 
     def join_queue(self):
         message = f"{self.username}♞JOIN_QUEUE"
