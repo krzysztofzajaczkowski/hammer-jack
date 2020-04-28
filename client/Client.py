@@ -31,10 +31,18 @@ class Client(object):
             # with the same username already exists)
 
     def wait_in_queue(self):
-        while True:
-            data = self.socket.recv(1024)
-            data = data.decode()
-            if data == "DISCONNECT":
-                print("Server closed connection")
-                break
-            print(data)
+        try:
+            while True:
+                # message = input("->")
+                # message = self.username + '♞' + message
+                # self.socket.send(message.encode())
+                data = self.socket.recv(1024)
+                data = data.decode()
+                if data == "DISCONNECT":
+                    print("Server closed connection")
+                    break
+                print(data)
+        except KeyboardInterrupt:
+            print("\nLeaving queue")
+            message = f"{self.username}♞LEAVE_QUEUE"
+            self.socket.send(message.encode())
