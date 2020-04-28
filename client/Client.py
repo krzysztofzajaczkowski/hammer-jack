@@ -22,7 +22,13 @@ class Client(object):
         data = self.socket.recv(1024)
         data = data.decode()
         print(f"Came back from server: {data}")
-        self.wait_in_queue()
+        if data == f"{self.username}♞JOINED_QUEUE":
+            print("Joined queue...")
+            self.wait_in_queue()
+        if data == f"{self.username}♞REJECTED_QUEUE":
+            print("Couldn't join queue...")
+            pass  # REJECTED_QUEUE -> Server cannot establish user(sth like keyError if user
+            # with the same username already exists)
 
     def wait_in_queue(self):
         while True:
