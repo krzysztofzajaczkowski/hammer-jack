@@ -25,9 +25,10 @@ class Client(object):
         self.socket.send(message.encode())
         data = self.socket.recv(1024)
         data = data.decode()
-        print(f"Came back from server: {data}")
+        print(f"Response from server: {data}")
         if data == f"{self.username}♞JOINED_QUEUE":
             print("Joined queue...")
+            print("Press CTRL + C to leave")
             self.wait_in_queue()
         if data == f"{self.username}♞REJECTED_QUEUE":
             print("Couldn't join queue...")
@@ -37,15 +38,12 @@ class Client(object):
     def wait_in_queue(self):
         try:
             while True:
-                # message = input("->")
-                # message = self.username + '♞' + message
-                # self.socket.send(message.encode())
                 data = self.socket.recv(1024)
                 data = data.decode()
                 if data == "DISCONNECT":
                     print("Server closed connection")
                     break
-                print(data)
+                print(f"Response from server: {data}")
         except KeyboardInterrupt:
             print("\nLeaving queue")
             message = f"{self.username}♞LEAVE_QUEUE"
