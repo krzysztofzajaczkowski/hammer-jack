@@ -1,14 +1,14 @@
-import json
+import yaml
 import socket
 import time
 
 
 class Client(object):
     def __init__(self, username):
-        with open("appsettings.json") as config_file:
-            config = json.load(config_file)
+        with open("appsettings.yaml", "r") as config_file:
+            config = yaml.safe_load(config_file)
             server_credentials = config['ServerCredentials']
-            self.server_address = server_credentials['IpAddress']
+            self.server_address = server_credentials['Address']
             self.server_port = server_credentials['Port']
         self.username = username
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
