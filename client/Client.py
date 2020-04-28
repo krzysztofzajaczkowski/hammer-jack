@@ -1,5 +1,6 @@
 import json
 import socket
+import time
 
 
 class Client(object):
@@ -24,7 +25,7 @@ class Client(object):
     def join_queue(self):
         message = f"{self.username}♞JOIN_QUEUE"
         self.socket.send(message.encode())
-        data = self.socket.recv(1024)
+        data = self.socket.recv(2048)
         data = data.decode()
         print(f"Response from server: {data}")
         if data == f"{self.username}♞JOINED_QUEUE":
@@ -40,14 +41,17 @@ class Client(object):
     def wait_in_queue(self):
         try:
             while True:
-                data = self.socket.recv(1024)
+                message = f"{self.username}♞IN_QUEUE"
+                self.socket.send(message.encode())
+                data = self.socket.recv(2048)
                 data = data.decode()
+                print(f"Response from server: {data}")
                 if data == "DISCONNECT":
                     print("Server closed connection")
                     self.socket.shutdown(socket.SHUT_RDWR)
                     self.socket.close()
                     break
-                print(f"Response from server: {data}")
+                time.sleep(1.0)
         except KeyboardInterrupt:
             print("\nLeaving queue")
             message = f"{self.username}♞LEAVE_QUEUE"
