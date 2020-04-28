@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/krzysztofzajaczkowski/HammerJack.svg?branch=master)](https://travis-ci.com/krzysztofzajaczkowski/HammerJack)
+
 # HammerJack
 
 ## Choose a hole, and whack the mole!
