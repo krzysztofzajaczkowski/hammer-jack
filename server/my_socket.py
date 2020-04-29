@@ -36,7 +36,6 @@ class ClientThread(threading.Thread):
     def queue_status(self):
         if len(list(self.other_users)) >= 3 and self.other_users[self.username][2] == "ingame":
             return self.form_game()
-            # TODO REMOVE PLAYERS FROM QUEUE AND SEND THEM PORTS/IP
         print(self.other_users)
         return list(self.other_users).index(self.username)
 
@@ -72,15 +71,19 @@ class PlayersManager(threading.Thread):
         self.other_players = other_players
         self.games = active_games
         self.dead = False
+        self.players_per_game = 3
 
-    def run(self, players_in_single_game=3):
+    def run(self):
         while not self.dead:
-            if len(self.other_players) >= players_in_single_game:
-                print(list(self.other_players)[:players_in_single_game])
-                game = self.other_players[:players_in_single_game]
-                for player in list(game):
-                    self.other_players[player][2] = "ingame"
-                self.games.append(game)
+            print(len(self.other_players))
+            print(threading.enumerate())
+            if len(self.other_players) >= self.players_per_game:
+                pass
+                # print(list(self.other_players)[:players_in_single_game])
+                # game = self.other_players[:players_in_single_game]
+                # for player in list(game):
+                #     self.other_players[player][2] = "ingame"
+                # self.games.append(game)
             time.sleep(3)
 
     def kill(self):
@@ -94,12 +97,10 @@ class Server:
         self.port = port
         self.players = OrderedDict()
         self.tcp_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.threads = []
         self.games = []
         self.create_tcp()
         self.queue = PlayersManager(self.players, self.games)
         self.queue.start()
-        self.threads.append(self.queue)
         self.dead = False
 
     def create_tcp(self):
@@ -111,9 +112,8 @@ class Server:
             self.tcp_server.listen(4)
             print("Multithreaded Python server : Waiting for connections from TCP clients...")
             (conn, (ip_addr, port)) = self.tcp_server.accept()
-            newthread = ClientThread(ip_addr, port, conn, self.players)
-            newthread.start()
-            self.threads.append(newthread)
+            new_thread = ClientThread(ip_addr, port, conn, self.players)
+            new_thread.start()
 
     def die(self):
         for thread in threading.enumerate():
