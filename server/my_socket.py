@@ -1,6 +1,7 @@
 import socket
 import threading
 import time
+from random import sample
 from collections import OrderedDict
 from random import sample
 
@@ -17,13 +18,13 @@ class ClientThread(threading.Thread):
         self.games = games
         print("[+] New server socket thread started for " + self.ip_addr + ":" + str(self.port))
 
+
     def run(self):
         self.first_data()
         try:
             while not self.dead:
                 self.conn.settimeout(10.0)
                 data = self.conn.recv(2048)
-                print(data.decode())
                 message = str(self.respond(data.decode()))
                 self.conn.send(message.encode())  # echo
         except (socket.timeout, socket.error):
@@ -65,6 +66,7 @@ class ClientThread(threading.Thread):
                 if player[0] == self.username:
                     return game
         return []
+
 
     def form_game(self):
         actual_msg = self.find_in_which_game()
