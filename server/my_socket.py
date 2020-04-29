@@ -9,7 +9,7 @@ class ClientThread(threading.Thread):
     def __init__(self, ip, port, conn: socket.socket, other_users):
         threading.Thread.__init__(self)
         self.conn = conn
-        self.ip = ip
+        self.ip_addr = ip
         self.port = port
         self.username = ""
         self.other_users = other_users
@@ -22,8 +22,8 @@ class ClientThread(threading.Thread):
             while not self.dead:
                 self.conn.settimeout(10.0)
                 data = self.conn.recv(2048)
-                MESSAGE = str(self.respond(data.decode()))
-                self.conn.send(MESSAGE.encode())  # echo
+                message = str(self.respond(data.decode()))
+                self.conn.send(message.encode())  # echo
         except (socket.timeout, socket.error):
             self.kill()
 
@@ -34,20 +34,23 @@ class ClientThread(threading.Thread):
         return switcher.get(msg, "DISCONNECT")
 
     def queue_status(self):
-        if len(list(self.other_users)) >= 3:
-            pass
+        if len(list(self.other_users)) >= 3 and self.other_users[self.username][2] == "ingame":
+            return self.form_game()
             # TODO REMOVE PLAYERS FROM QUEUE AND SEND THEM PORTS/IP
         print(self.other_users)
         return list(self.other_users).index(self.username)
+
+    def form_game(self):
+        pass
 
     def first_data(self):
         data = self.conn.recv(2048)
         data = data.decode().split('♞')
         print("Server received data:", data)
         self.username = data[0].strip()
-        self.other_users[self.username] = [self.ip, self.port, "waiting"]
-        MESSAGE = "Hello! User " + data[0].strip() + " choosed " + data[1].strip()
-        self.conn.send(MESSAGE.encode())  # echo
+        self.other_users[self.username] = [self.ip_addr, self.port, "waiting"]
+        message = "Hello! User " + data[0].strip() + " choosed " + data[1].strip()
+        self.conn.send(message.encode())  # echo
 
     def kill(self):
         try:
@@ -64,16 +67,20 @@ class ClientThread(threading.Thread):
 
 
 class PlayersManager(threading.Thread):
-    def __init__(self, other_players):
+    def __init__(self, other_players, active_games):
         super().__init__()
         self.other_players = other_players
+        self.games = active_games
         self.dead = False
 
-    def run(self):
+    def run(self, players_in_single_game=3):
         while not self.dead:
-            # print(len(self.other_players))
-            if len(self.other_players) >= 2:
-                print(list(self.other_players)[:2])
+            if len(self.other_players) >= players_in_single_game:
+                print(list(self.other_players)[:players_in_single_game])
+                game = self.other_players[:players_in_single_game]
+                for player in list(game):
+                    self.other_players[player][2] = "ingame"
+                self.games.append(game)
             time.sleep(3)
 
     def kill(self):
@@ -83,27 +90,28 @@ class PlayersManager(threading.Thread):
 
 class Server:
     def __init__(self, port=63300, addr='localhost'):
-        self.players = OrderedDict()
-        self.tcpServer = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.threads = []
-        self.ip = addr
+        self.ip_addr = addr
         self.port = port
+        self.players = OrderedDict()
+        self.tcp_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.threads = []
+        self.games = []
         self.create_tcp()
-        self.queue = PlayersManager(self.players)
+        self.queue = PlayersManager(self.players, self.games)
         self.queue.start()
         self.threads.append(self.queue)
         self.dead = False
 
     def create_tcp(self):
-        self.tcpServer.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.tcpServer.bind((self.ip, self.port))
+        self.tcp_server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.tcp_server.bind((self.ip_addr, self.port))
 
     def listen(self):
         while not self.dead:
-            self.tcpServer.listen(4)
+            self.tcp_server.listen(4)
             print("Multithreaded Python server : Waiting for connections from TCP clients...")
-            (conn, (ip, port)) = self.tcpServer.accept()
-            newthread = ClientThread(ip, port, conn, self.players)
+            (conn, (ip_addr, port)) = self.tcp_server.accept()
+            newthread = ClientThread(ip_addr, port, conn, self.players)
             newthread.start()
             self.threads.append(newthread)
 
@@ -119,6 +127,9 @@ class Server:
         except SystemExit:
             print("Main thread down")
             return
+
+    def new_game(self, single_game):
+        self.games.append(single_game)
 
 
 def main():
