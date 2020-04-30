@@ -3,20 +3,21 @@ import threading
 import time
 from random import sample
 from collections import OrderedDict
+from random import sample
 
 
 class ClientThread(threading.Thread):
 
-    def __init__(self, ip, port, conn: socket.socket, other_users, games):
+    def __init__(self, conn: socket.socket, other_users, games):
         threading.Thread.__init__(self)
         self.conn = conn
-        self.ip_addr = ip
-        self.port = port
+        self.ip_addr, self.port = conn.getsockname()
         self.username = ""
         self.other_users = other_users
         self.dead = False
         self.games = games
-        print("[+] New server socket thread started for " + ip + ":" + str(port))
+        print("[+] New server socket thread started for " + self.ip_addr + ":" + str(self.port))
+
 
     def run(self):
         self.first_data()
@@ -29,22 +30,43 @@ class ClientThread(threading.Thread):
         except (socket.timeout, socket.error):
             self.kill()
 
+    def actual_status(self, who=None, expected_status="forming"):
+        if who is None:
+            return bool(self.other_users[self.username][2] == expected_status)
+        return bool(self.other_users[str(who)][2] == expected_status)
+
     def respond(self, msg):
-        switcher = {
-            "GAME_STATE": self.queue_status()
-        }
-        return switcher.get(msg, "DISCONNECT")
+        if msg == "GAME_STATE":
+            return self.queue_status()
+        if msg == "CREATED_GAME":
+            return self.change_players_status()
+        return "DISCONNECT"
 
     def queue_status(self):
-        if self.other_users[self.username][2] == "ingame":
+        if self.actual_status():
             return self.form_game()
+        print(self.other_users)
         return [x[0] for x in self.other_users.items() if x[1][2] == "waiting"].index(self.username)
+
+    def change_players_status(self, status_changed_to="created"):
+        if status_changed_to == self.actual_status(expected_status=status_changed_to):
+            game = self.find_in_which_game()
+            for player in game:
+                if len(player) == 2:
+                    if not self.actual_status(expected_status=status_changed_to, who=player[0]):
+                        return "WAIT"
+            self.kill()
+            return "DISCONNECT"
+        self.other_users[self.username][2] = status_changed_to
+        return "WAIT"
 
     def find_in_which_game(self):
         for game in self.games:
             for player in game:
                 if player[0] == self.username:
                     return game
+        return []
+
 
     def form_game(self):
         actual_msg = self.find_in_which_game()
@@ -60,6 +82,7 @@ class ClientThread(threading.Thread):
         self.conn.send(message.encode())  # echo
 
     def kill(self):
+        print("zabijam")
         try:
             self.conn.send("DISCONNECT".encode())
             self.conn.shutdown(socket.SHUT_RDWR)
@@ -100,7 +123,7 @@ class PlayersManager(threading.Thread):
                 break
         return game
 
-    def change_players_status(self, game: list, status_to_be_changed_to="ingame"):
+    def change_players_status(self, game: list, status_to_be_changed_to="forming"):
         for player in game:
             self.other_players[player[0]][2] = status_to_be_changed_to
 
@@ -139,8 +162,8 @@ class Server:
         while not self.dead:
             self.tcp_server.listen(4)
             print("Multithreaded Python server : Waiting for connections from TCP clients...")
-            (conn, (ip_addr, port)) = self.tcp_server.accept()
-            new_thread = ClientThread(ip_addr, port, conn, self.players, self.games)
+            conn = self.tcp_server.accept()[0]
+            new_thread = ClientThread(conn, self.players, self.games)
             new_thread.start()
 
     def die(self):
