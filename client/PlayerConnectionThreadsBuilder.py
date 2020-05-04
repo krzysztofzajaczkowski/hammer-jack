@@ -1,7 +1,7 @@
 from PlayerConnectionConfig import PlayerConnectionConfig
 from ThreadStatus import ThreadStatus
 from ConnectionThread import ConnectionThread
-from PlayerConnection import PlayerConnection
+from PlayerConnectionThreadHandler import PlayerConnectionThreadHandler
 
 
 class PlayerConnectionThreadsBuilder:
@@ -96,7 +96,7 @@ class PlayerConnectionThreadsBuilder:
                 thread_status = ThreadStatus(self.username, config[2], is_active_connect, 'localhost',
                                              host_port, config[3], player_port)
                 thread = ConnectionThread(thread_status)
-                player_connection = PlayerConnection(thread, thread_status)
+                player_connection = PlayerConnectionThreadHandler(thread, thread_status)
                 player_connections.append(player_connection)
             return player_connections
         else:
