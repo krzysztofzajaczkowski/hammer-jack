@@ -33,9 +33,7 @@ class PlayerConnectionThreadsBuilder:
 
     def prepare_connection_config_for_each_player(self):
         '''Create config for each player with their IP and ports'''
-        if self.username is not None and \
-                self.users is not None and \
-                self.ports is not None:
+        if None not in [self.username, self.users, self.ports]:
             self.client_configs = []
             self.other_players_configs = []
             for i in range(len(self.users)):
@@ -49,8 +47,7 @@ class PlayerConnectionThreadsBuilder:
 
     def get_number_of_active_connections(self):
         '''Get how many connections should be created actively(client connects, rather than listens)'''
-        if self.users is not None and \
-                self.client_index is not None:
+        if None not in [self.users, self.client_index]:
             self.number_of_active_connections = int(len(self.users) / 2 - 1) if self.client_index >= len(
                 self.users) / 2 and len(
                 self.users) / 2 % 2 == 0 else int(len(self.users) / 2)
@@ -59,10 +56,8 @@ class PlayerConnectionThreadsBuilder:
 
     def prepare_client_connections_config(self):
         '''Prepare connection config for each player client should connect to (username, ip, port, mode[active/passive])'''
-        if self.client_configs is not None and \
-                self.other_players_configs is not None and \
-                self.client_index is not None and \
-                self.number_of_active_connections is not None:
+        if None not in [self.client_configs, self.other_players_configs,
+                        self.client_index, self.number_of_active_connections]:
             self.client_to_ports_config = []
             for i in range(len(self.client_configs)):
                 if i != self.client_index:
@@ -82,7 +77,7 @@ class PlayerConnectionThreadsBuilder:
 
     def build(self):
         '''Build handlerStatuses and threads for each connection'''
-        if self.client_to_ports_config is not None and self.username is not None:
+        if None not in [self.client_to_ports_config, self.username]:
             player_connections = []
             for config in self.client_to_ports_config:
                 is_active_connect = 0

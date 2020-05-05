@@ -12,21 +12,23 @@ class ConnectionThread(threading.Thread):
         self.lock = threading.Lock()
 
     def run(self):
-        while not self.handler_status.to_kill:
-            if not self.handler_status.is_connected:
-                if self.handler_status.is_active_connect:
-                    self.connect()
+        try:
+            while not self.handler_status.to_kill:
+                if self.handler_status.is_connected != "connected":
+                    if self.handler_status.is_active_connect:
+                        self.connect()
+                    else:
+                        self.listen()
                 else:
-                    self.listen()
-            else:
-                break
-        self.conn.settimeout(3.0)
-        while not self.handler_status.to_kill:
-            self.send_counter()
-            time.sleep(1.0)
-            self.get_counter()
-            self.handler_status.msg += 1
-        self.kill()
+                    break
+            self.conn.settimeout(3.0)
+            while not self.handler_status.to_kill:
+                self.send_counter()
+                time.sleep(1.0)
+                self.get_counter()
+                self.handler_status.msg += 1
+        finally:
+            self.kill()
 
     def send_counter(self):
         self.lock.acquire()
@@ -39,7 +41,7 @@ class ConnectionThread(threading.Thread):
             except socket.error:
                 if i == 5:
                     print("Couldn't send message. Receiver must've closed connection!")
-                    self.handler_status.is_connected = -1
+                    self.handler_status.is_connected = "connection_error"
         self.lock.release()
 
     def get_counter(self):
@@ -50,13 +52,13 @@ class ConnectionThread(threading.Thread):
                 msg = msg.decode()
                 if msg == '' or msg == ' ':
                     print("Socket connection shut down")
-                    self.handler_status.is_connected = -1
+                    self.handler_status.is_connected = "connection_error"
                 print(msg)
                 break
             except socket.error:
                 if i == 5:
                     print("Couldn't receive message. Receiver must've closed connection!")
-                    self.handler_status.is_connected = -1
+                    self.handler_status.is_connected = "connection_error"
         self.lock.release()
 
     def connect(self):
@@ -69,7 +71,7 @@ class ConnectionThread(threading.Thread):
                 self.socket.settimeout(None)
                 self.conn = self.socket
                 print(f"Connected with: {self.handler_status.player_ip}:{self.handler_status.player_port}")
-                self.handler_status.is_connected = 1
+                self.handler_status.is_connected = "connected"
                 return
             except socket.error as msg:
                 print(f"Try: {tries}")
@@ -77,8 +79,8 @@ class ConnectionThread(threading.Thread):
                 tries += 1
                 if tries > 5:
                     self.socket.close()
-                    self.handler_status.is_connected = -1
-                    self.handler_status.to_kill = 1
+                    self.handler_status.is_connected = "connection_error"
+                    self.handler_status.to_kill = True
                     return
                 time.sleep(1.0)
 
@@ -86,7 +88,7 @@ class ConnectionThread(threading.Thread):
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.bind((self.handler_status.host_ip, self.handler_status.host_port))
         self.socket.settimeout(10.0)
-        self.socket.listen(1)
+        self.socket.listen(4)
         print(f"Listening on: {self.handler_status.host_ip}:{self.handler_status.host_port}")
         try:
             self.lock.acquire()
@@ -94,16 +96,19 @@ class ConnectionThread(threading.Thread):
             self.socket.settimeout(None)
             self.lock.release()
             print(f"Someone connected with me from {ip}:{port}")
-            self.handler_status.is_connected = 1
+            self.handler_status.is_connected = "connected"
         except socket.timeout:
-            self.handler_status.is_connected = -1
-            self.handler_status.to_kill = 1
+            self.handler_status.is_connected = "connection_error"
+            self.handler_status.to_kill = True
 
     def kill(self):
-        if self.handler_status.is_connected == 1:
-            if self.handler_status.is_active_connect == 1:
-                self.socket.shutdown(socket.SHUT_RDWR)
-            else:
-                self.conn.shutdown(socket.SHUT_RDWR)
-                self.conn.close()
-        self.socket.close()
+        try:
+            self.socket.shutdown(socket.SHUT_RDWR)
+            self.socket.close()
+        except socket.error:
+            pass
+        try:
+            self.conn.shutdown(socket.SHUT_RDWR)
+            self.conn.close()
+        except socket.error:
+            pass

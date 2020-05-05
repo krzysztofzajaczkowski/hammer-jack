@@ -48,25 +48,24 @@ class Client(object):
             while True:
                 end_threads = 1
                 for connection_thread in self.connections_threads:
-                    if connection_thread.status.is_connected == -1:
-                        connection_thread.status.to_kill = 1
-                    if connection_thread.status.is_connected != -1:
+                    if connection_thread.status.is_connected == "connection_error":
+                        connection_thread.status.to_kill = True
+                    if connection_thread.status.is_connected == "connection_error":
                         end_threads = 0
                 if end_threads:
                     for connection_thread in self.connections_threads:
-                        connection_thread.status.to_kill = 1
+                        connection_thread.status.to_kill = True
                     for connection_thread in self.connections_threads:
                         connection_thread.thread.join()
                     return
         except KeyboardInterrupt:
             for connection_thread in self.connections_threads:
-                connection_thread.status.to_kill = 1
+                connection_thread.status.to_kill = True
             for connection_thread in self.connections_threads:
                 connection_thread.thread.join()
             return
 
     def build_connections_threads(self, response_from_server):
-        #data = ast.literal_eval(response_from_server)
         builder = PlayerConnectionThreadsBuilder()
         builder.convert_server_response_to_users_and_ports(response_from_server)
         builder.find_client_index_in_users(self.username)
