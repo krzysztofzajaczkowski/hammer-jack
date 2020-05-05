@@ -1,7 +1,6 @@
 import socket
 import threading
 import time
-from random import sample
 from collections import OrderedDict
 from random import sample
 
@@ -17,7 +16,6 @@ class ClientThread(threading.Thread):
         self.dead = False
         self.games = games
         print("[+] New server socket thread started for " + self.ip_addr + ":" + str(self.port))
-
 
     def run(self):
         self.first_data()
@@ -66,7 +64,6 @@ class ClientThread(threading.Thread):
                 if player[0] == self.username:
                     return game
         return []
-
 
     def form_game(self):
         actual_msg = self.find_in_which_game()
@@ -133,7 +130,7 @@ class PlayersManager(threading.Thread):
                 game = self.create_game_variable()
                 if len(game) == self.players_per_game:
                     self.change_players_status(game)
-                game.append(sample(range(55000, 56000), 3))
+                game.append(sample(range(55000, 56000), self.players_per_game**2))
                 self.games.append(game)
             time.sleep(3)
 
