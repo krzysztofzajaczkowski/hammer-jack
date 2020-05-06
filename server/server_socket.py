@@ -79,7 +79,6 @@ class ClientThread(threading.Thread):
         self.conn.send(message.encode())  # echo
 
     def kill(self):
-        print("zabijam")
         try:
             self.conn.send("DISCONNECT".encode())
             self.conn.shutdown(socket.SHUT_RDWR)
