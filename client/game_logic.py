@@ -1,7 +1,7 @@
-import threading
-import time
 import math
 import random
+import threading
+import time
 from itertools import accumulate
 
 MAX_SCORE = 100
@@ -52,7 +52,7 @@ class Game(threading.Thread):
         self.moles_status[pos] = [3, self.generate_mole_lifetime()]
 
     def hide_mole(self, pos: int):
-        self.moles_status[pos] = [0, 0]
+        self.moles_status[pos] = [0, [0, 0, 0]]
 
     def moles_progression(self):
         self.moles_lock.acquire()
@@ -60,7 +60,10 @@ class Game(threading.Thread):
         for idx, mole in enumerate(self.moles_status):
             for state, checked_time in enumerate(mole[1][::-1]):
                 if checked_time < op_start_time:
-                    self.moles_status[idx][0] = state
+                    if state != 0:
+                        self.moles_status[idx][0] = state
+                    else:
+                        self.moles_status[idx] = [0, [0, 0, 0]]
                     self.values_changed = True
                     break
         self.moles_lock.release()
@@ -89,7 +92,7 @@ class Game(threading.Thread):
         self.moles_lock.release()
 
     def calculate_score(self, key: int, max_combo=8):
-        if sum(self.moles_status[key]) != 0:
+        if self.moles_status[key][0] != 0:
             self.score += self.combo
             self.combo *= 2 if self.combo < max_combo else 1
             self.hide_mole(key)
@@ -128,7 +131,7 @@ class Game(threading.Thread):
         return str(int(self.end)).zfill(2)
 
     def bit_msg_id(self) -> str:
-        return bin(self.package_number % 2 ** 10 - 1)[2:].zfill(10)
+        return (bin(self.package_number % (2 ** 10 - 1))[2:]).zfill(10)
 
 
 class GameView(threading.Thread):
@@ -137,7 +140,8 @@ class GameView(threading.Thread):
         self.loading_lock = threading.Lock()
         self.actual_counter = 0
         self.end = 0
-        self.package = '0000000101111100001000000000010000000001'
+        self.package_parsed = []
+        self.package_bin = '0000000101111100001000000000010000000001'
         self.combo_score = [0, 1]
         self.board = [0 for _ in range(9)]
 
@@ -150,8 +154,8 @@ class GameView(threading.Thread):
 
     def read_package(self) -> bool:
         self.loading_lock.acquire()
-        self.package = self.split_package()
-        if self.valid_counter(int(self.package[0], 2)):
+        self.package_parsed = self.split_package()
+        if self.valid_counter(int(self.package_parsed[0], 2)):
             self.load_combo_score()
             self.load_board()
             self.load_state()
@@ -163,7 +167,7 @@ class GameView(threading.Thread):
     def split_package(self) -> list:
         lengths = [0, 10, 18, 2, 8, 2]  # [ID, BOARD, COMBO, SCORE, STATE]
         lengths = list(accumulate(lengths))
-        return [self.package[lengths[x]: lengths[x + 1]] for x in range(len(lengths) - 1)]
+        return [str(self.package_bin)[lengths[x]: lengths[x + 1]] for x in range(len(lengths) - 1)]
 
     def valid_counter(self, cnt: int) -> bool:
         if cnt > self.actual_counter or self.actual_counter - cnt > 100:
@@ -172,19 +176,22 @@ class GameView(threading.Thread):
         return False
 
     def load_board(self):
-        self.board = [int(self.package[1][x * 2:(x + 1) * 2], 2) for x in range(9)]
+        self.board = [int(self.package_parsed[1][x * 2:(x + 1) * 2], 2) for x in range(9)]
 
     def load_combo_score(self):
-        self.combo_score = [int(self.package[2], 2), int(self.package[3], 2)]
+        if self.check_if_legit():
+            self.combo_score = [int(self.package_parsed[2], 2), int(self.package_parsed[3], 2)]
+        else:
+            print("Cheater!")
+            self.end = True
+
+    def check_if_legit(self):
+        if int(self.package_parsed[3], 2) - self.combo_score[1] \
+                > max(int(self.package_parsed[2], 2), self.combo_score[0]) * max(3, sum([bool(x) for x in self.board])):
+            return False
+        return True
 
     def load_state(self):
         # TODO MODIFY FOR MORE POSSIBLE STATES. EXIT SUPPORTED FOR NOW
-        if self.package[4] == '01':
+        if self.package_parsed[4] == '01':
             self.end = True
-
-    def display(self):
-        # TODO REMOVE ME ASAP
-        print(self.combo_score)
-        row_len = 3
-        for i in range(row_len):
-            print('\t'.join([str(x) for x in self.board[i*row_len:(i+1)*row_len]]))
