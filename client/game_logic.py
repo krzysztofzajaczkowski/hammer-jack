@@ -25,21 +25,36 @@ class Game(threading.Thread):
         self.moles_lock = threading.Lock()
         self.end = False
 
+    def get_score(self) -> str:
+        while self.moles_lock.locked():
+            time.sleep(0.05)
+        return str(self.score)
+
+    def get_combo(self) -> str:
+        while self.moles_lock.locked():
+            time.sleep(0.05)
+        return str(self.combo)
+
+    def get_end(self) -> bool:
+        return bool(self.end)
+
+    def get_board(self) -> list:
+        while self.moles_lock.locked():
+            time.sleep(0.05)
+        return [x[0] for x in self.moles_status]
+
     def run(self):
         self.last_print_time = time.time()
         try:
             while not self.end:
-                self.values_changed = False
                 self.whack_moles()
                 self.generate_new_moles()
                 self.moles_progression()
                 if self.values_changed and self.last_print_time + 1 < time.time():
-                    self.print_board()
                     self.package_number += 1
                     self.last_print_time = time.time()
                     if self.score >= MAX_SCORE:
                         self.end = True
-                    print(self.create_bits_package())
                 time.sleep(0.2)
         except KeyboardInterrupt:
             return
@@ -99,15 +114,6 @@ class Game(threading.Thread):
         else:
             self.combo = 1
 
-    def print_board(self):
-        self.moles_lock.acquire()
-        row_length = int(math.sqrt(self.number_of_moles))
-        for idx in range(row_length):
-            print("\t".join([str(x[0])
-                             for x in self.moles_status[idx * row_length:(idx + 1) * row_length]]))
-        print("\n")
-        self.moles_lock.release()
-
     def create_bits_package(self) -> str:
         self.moles_lock.acquire()
         bit_parts = [self.bit_msg_id,
@@ -122,7 +128,7 @@ class Game(threading.Thread):
         return bin(self.score)[2:].zfill(8)
 
     def bit_combo(self) -> str:
-        return bin(self.combo)[2:].zfill(2)
+        return bin(int(math.log2(self.combo)))[2:].zfill(2)
 
     def bit_board(self) -> str:
         return ''.join([bin(x[0])[2:].zfill(2) for x in self.moles_status])
@@ -139,18 +145,52 @@ class GameView(threading.Thread):
         super().__init__()
         self.loading_lock = threading.Lock()
         self.actual_counter = 0
-        self.end = 0
+        self.package_change = False
+        self.end = False
+        self.idx = 0
         self.package_parsed = []
-        self.package_bin = '0000000101111100001000000000010000000001'
+        self.package_bin = ''
         self.combo_score = [0, 1]
         self.board = [0 for _ in range(9)]
 
+    def set_package(self, package: str):
+        try:
+            self.loading_lock.acquire()
+            if len(package) > 0:
+                self.package_bin = package
+                self.package_change = True
+        except KeyboardInterrupt:
+            print("ERROR!")
+            raise SystemExit
+        finally:
+            self.loading_lock.release()
+
+    def get_score(self) -> str:
+        while self.loading_lock.locked():
+            time.sleep(0.05)
+        return str(self.combo_score[1])
+
+    def get_combo(self) -> str:
+        while self.loading_lock.locked():
+            time.sleep(0.05)
+        return str(self.combo_score[0])
+
+    def get_end(self) -> bool:
+        while self.loading_lock.locked():
+            time.sleep(0.05)
+        return bool(self.end)
+
+    def get_board(self) -> list:
+        while self.loading_lock.locked():
+            time.sleep(0.05)
+        return self.board
+
     def run(self) -> None:
         while not self.end:
-            self.read_package()
-            self.display()
-            time.sleep(3)
-            # TODO RECEIVE PACKAGES PROPER WAY
+            if self.package_change:
+                self.read_package()
+                self.package_change = False
+            time.sleep(0.05)
 
     def read_package(self) -> bool:
         self.loading_lock.acquire()
@@ -180,7 +220,7 @@ class GameView(threading.Thread):
 
     def load_combo_score(self):
         if self.check_if_legit():
-            self.combo_score = [int(self.package_parsed[2], 2), int(self.package_parsed[3], 2)]
+            self.combo_score = [2 ** (int(self.package_parsed[2], 2)), int(self.package_parsed[3], 2)]
         else:
             print("Cheater!")
             self.end = True
@@ -192,6 +232,13 @@ class GameView(threading.Thread):
         return True
 
     def load_state(self):
-        # TODO MODIFY FOR MORE POSSIBLE STATES. EXIT SUPPORTED FOR NOW
         if self.package_parsed[4] == '01':
             self.end = True
+
+
+if __name__ == '__main__':
+    # jakis_lock = threading.Lock()
+    # game = Game([], jakis_lock)
+    # game.start()
+    gv = GameView()
+    gv.start()
