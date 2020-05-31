@@ -1,7 +1,8 @@
-from ConnectionThread import ConnectionThread
+
 from PlayerConnectionConfig import PlayerConnectionConfig
-from PlayerConnectionThreadHandler import PlayerConnectionThreadHandler
 from ThreadStatus import ThreadStatus
+from ConnectionThread import ConnectionThread
+from PlayerConnectionThreadHandler import PlayerConnectionThreadHandler
 
 
 class PlayerConnectionThreadsBuilder:

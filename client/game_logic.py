@@ -235,10 +235,3 @@ class GameView(threading.Thread):
         if self.package_parsed[4] == '01':
             self.end = True
 
-
-if __name__ == '__main__':
-    # jakis_lock = threading.Lock()
-    # game = Game([], jakis_lock)
-    # game.start()
-    gv = GameView()
-    gv.start()
