@@ -10,4 +10,5 @@ class ThreadStatus:
         self.player_ip = player_ip
         self.player_port = player_port
         self.to_kill = False
-        self.msg = 0
+        self.msg_to_send = 0
+        self.received_msg = 0
