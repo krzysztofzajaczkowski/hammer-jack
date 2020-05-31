@@ -162,8 +162,6 @@ class Client(object):
                 else:
                     print('Disconnected!')
 
-                
-                
                 # independent of errors in app mainloop - set all games to end, so threads can be closed
                 main_game.end = True
                 for player in players_handlers:
@@ -194,7 +192,6 @@ class Client(object):
             self.logger.debug('Interrupt in Client')
             self.logger.debug(e)
         
-
     def build_connections_threads(self, response_from_server):
         builder = PlayerConnectionThreadsBuilder()
         builder.convert_server_response_to_users_and_ports(response_from_server)

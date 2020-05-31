@@ -161,7 +161,6 @@ class GameView(threading.Thread):
                 self.package_bin = package
                 self.package_change = True
         except KeyboardInterrupt:
-            # print("ERROR!")
             raise SystemExit
         finally:
             self.loading_lock.release()
@@ -234,11 +233,3 @@ class GameView(threading.Thread):
     def load_state(self):
         if self.package_parsed[4] == '01':
             self.end = True
-
-
-if __name__ == '__main__':
-    # jakis_lock = threading.Lock()
-    # game = Game([], jakis_lock)
-    # game.start()
-    gv = GameView()
-    gv.start()

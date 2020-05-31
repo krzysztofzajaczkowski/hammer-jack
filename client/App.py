@@ -7,50 +7,6 @@ import math
 from time import sleep
 from Logger import Logger
 
-# # import tkinter as tk
-# # import threading
-
-# class App(threading.Thread):
-
-#     def __init__(self):
-#         threading.Thread.__init__(self)
-#         self.setDaemon(True)
-#         self.root = None
-#         self.label_var = None
-#         self.start()
-
-#     def callback(self):
-#         self.root.quit()
-
-#     def run(self):
-#         self.root = Tk()
-#         self.root.protocol("WM_DELETE_WINDOW", self.callback)
-#         self.label_var = StringVar()
-
-#         label = Label(self.root, textvariable=self.label_var)
-#         label.pack()
-
-#         self.root.mainloop()
-#         return
-
-
-# app = App()
-# # print('Now we can continue running code while mainloop runs!')
-
-# try:
-#     while True:
-#         new_label_name = input('Set new label name: ')
-#         app.label_var.set(new_label_name)
-# except KeyboardInterrupt as e:
-#     pass
-
-# # for i in range(5000):
-# #     print(i)
-
-# app.callback()
-
-# # app.root.destroy()
-
 RECT_SIZE = 40
 KEY_DICT = {
     81: ["Q",0],
@@ -71,11 +27,13 @@ MOLES_POSITION = [
 ]
 NUMBER_OF_MOLES = 9
 
+
 class MoleState(IntEnum):
     HIDDEN = 0
     HIDING_2 = 1
     HIDING_1 = 2
     VISIBLE = 3
+
 
 class PlayerBoard():
     def __init__(self, player_name, root_window):
