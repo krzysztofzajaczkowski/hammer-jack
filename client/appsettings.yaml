@@ -1,3 +1,5 @@
 ServerCredentials:
   Address: "localhost"
   Port: 63300
+logger:
+  log_level: 'INFO'       # DEBUG / INFO
